@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockPulse Report — {{ generated_at }}</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: #0d1117;
+            color: #e6edf3;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ── HEADER ── */
+        .report-header {
+            border-bottom: 2px solid #30363d;
+            padding-bottom: 32px;
+            margin-bottom: 48px;
+        }
+
+        .report-header h1 {
+            font-size: 2.8rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            color: #f0f6fc;
+        }
+
+        .report-header h1 span { color: #58a6ff; }
+
+        .report-meta {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #8b949e;
+            font-family: 'Courier New', monospace;
+        }
+
+        .ticker-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .pill {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.8rem;
+            font-family: 'Courier New', monospace;
+            color: #58a6ff;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── SECTION HEADINGS ── */
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 20px;
+        }
+
+        .subsection-title {
+            font-size: 0.75rem;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #8b949e;
+            margin-bottom: 12px;
+            margin-top: 28px;
+        }
+
+        /* ── TABLES ── */
+        .table-wrap {
+            overflow-x: auto;
+            margin-bottom: 32px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        thead th {
+            background: #161b22;
+            color: #8b949e;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 10px 16px;
+            text-align: right;
+            border-bottom: 1px solid #30363d;
+        }
+
+        thead th:first-child { text-align: left; }
+
+        tbody tr { border-bottom: 1px solid #21262d; }
+        tbody tr:hover { background: #161b22; }
+
+        tbody td {
+            padding: 10px 16px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-size: 0.88rem;
+            color: #c9d1d9;
+        }
+
+        tbody td:first-child {
+            text-align: left;
+            color: #f0f6fc;
+        }
+
+        .positive { color: #3fb950; }
+        .negative { color: #f85149; }
+        .neutral  { color: #8b949e; }
+
+        /* ── PER-TICKER SECTIONS ── */
+        .ticker-section {
+            margin-bottom: 64px;
+        }
+
+        .ticker-heading {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .ticker-heading h2 {
+            font-size: 2rem;
+            font-weight: 400;
+            color: #58a6ff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .ticker-heading .cumret {
+            font-size: 1.1rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
+        .metric-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px 20px;
+        }
+
+        .metric-card .label {
+            font-size: 0.7rem;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #8b949e;
+            margin-bottom: 6px;
+        }
+
+        .metric-card .value {
+            font-size: 1.5rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ── CORRELATION MATRIX ── */
+        .corr-self   { color: #8b949e; }
+        .corr-high   { color: #3fb950; }
+        .corr-medium { color: #e3b341; }
+        .corr-low    { color: #f85149; }
+
+        /* ── FOOTER ── */
+        .report-footer {
+            margin-top: 64px;
+            padding-top: 24px;
+            border-top: 1px solid #21262d;
+            font-size: 0.78rem;
+            color: #484f58;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ══ HEADER ══ -->
+    <header class="report-header">
+        <h1>Stock<span>Pulse</span></h1>
+        <p class="report-meta">Generated: {{ generated_at }} &nbsp;|&nbsp; Tickers: {{ tickers | join(", ") }}</p>
+        <div class="ticker-pills">
+            {% for ticker in tickers %}
+            <span class="pill">{{ ticker }}</span>
+            {% endfor %}
+        </div>
+    </header>
+
+    <!-- ══ SUMMARY TABLE ══ -->
+    <section style="margin-bottom: 48px;">
+        <p class="section-title">Summary</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticker</th>
+                        <th>Cumulative Return</th>
+                        <th>Volatility (Daily σ)</th>
+                        <th>Latest SMA-20</th>
+                        <th>Latest SMA-50</th>
+                        <th>Data Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticker, data in results.items() %}
+                    {% set cum_ret = data.cumulative_return %}
+                    <tr>
+                        <td><strong>{{ ticker }}</strong></td>
+                        <td class="{{ 'positive' if cum_ret >= 0 else 'negative' }}">
+                            {{ (cum_ret * 100) | round(2) }}%
+                        </td>
+                        <td>{{ (data.volatility * 100) | round(4) }}%</td>
+                        <td>{{ data.sma_20[-1][1] | round(2) }}</td>
+                        <td>{{ data.sma_50[-1][1] | round(2) }}</td>
+                        <td>{{ data.daily_returns | length }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ══ PER-TICKER SECTIONS ══ -->
+    {% for ticker, data in results.items() %}
+    {% set cum_ret = data.cumulative_return %}
+    <section class="ticker-section">
+
+        <div class="ticker-heading">
+            <h2>{{ ticker }}</h2>
+            <span class="cumret {{ 'positive' if cum_ret >= 0 else 'negative' }}">
+                {{ (cum_ret * 100) | round(2) }}% cumulative return
+            </span>
+        </div>
+
+        <!-- Scalar metric cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="label">Cumulative Return</div>
+                <div class="value {{ 'positive' if cum_ret >= 0 else 'negative' }}">
+                    {{ (cum_ret * 100) | round(2) }}%
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Daily Volatility (σ)</div>
+                <div class="value">{{ (data.volatility * 100) | round(4) }}%</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Latest SMA-20</div>
+                <div class="value">{{ data.sma_20[-1][1] | round(2) }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Latest SMA-50</div>
+                <div class="value">{{ data.sma_50[-1][1] | round(2) }}</div>
+            </div>
+            <div class="metric-card">
+                <div class="label">Trading Days</div>
+                <div class="value">{{ data.daily_returns | length }}</div>
+            </div>
+        </div>
+
+        <!-- Top 10 high/low range days -->
+        <p class="subsection-title">Top 10 Most Volatile Days (High − Low Range)</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Range ($)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for date, range_val in data.high_low_ranges[:10] %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ date }}</td>
+                        <td>{{ range_val | round(4) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Recent daily returns -->
+        <p class="subsection-title">Daily Returns — Last 20 Trading Days</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Return</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for date, ret in data.daily_returns[-20:] %}
+                    <tr>
+                        <td>{{ date }}</td>
+                        <td class="{{ 'positive' if ret >= 0 else 'negative' }}">
+                            {{ (ret * 100) | round(3) }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Aligned SMA table -->
+        <p class="subsection-title">Moving Averages — Last 20 Data Points</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>SMA-20</th>
+                        <th>SMA-50</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for date, s20, s50 in sma_tables[ticker][-20:] %}
+                    <tr>
+                        <td>{{ date }}</td>
+                        <td>{{ s20 | round(4) }}</td>
+                        <td>{{ s50 | round(4) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </section>
+    {% endfor %}
+
+    <!-- ══ CORRELATION MATRIX ══ -->
+    {% if tickers | length > 1 %}
+    <section style="margin-bottom: 48px;">
+        <p class="section-title">Correlation Matrix</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        {% for ticker in tickers %}
+                        <th>{{ ticker }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticker_a in tickers %}
+                    <tr>
+                        <td><strong>{{ ticker_a }}</strong></td>
+                        {% for ticker_b in tickers %}
+                        {% set val = correlation_matrix[ticker_a][ticker_b] %}
+                        {% if ticker_a == ticker_b %}
+                            <td class="corr-self">{{ val | round(4) }}</td>
+                        {% elif val | abs > 0.7 %}
+                            <td class="corr-high">{{ val | round(4) }}</td>
+                        {% elif val | abs > 0.4 %}
+                            <td class="corr-medium">{{ val | round(4) }}</td>
+                        {% else %}
+                            <td class="corr-low">{{ val | round(4) }}</td>
+                        {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    <footer class="report-footer">
+        StockPulse &mdash; generated {{ generated_at }} &mdash; data sourced from Alpha Vantage
+    </footer>
+
+</div>
+</body>
+</html>

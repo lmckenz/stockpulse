@@ -1,0 +1,25 @@
+# Environment & secrets
+.env
+
+# Generated output
+cache/
+output/
+
+# Python internals
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
