@@ -222,4 +222,4 @@ Modules communicate through well-defined data contracts. See `AMENDMENTS.md` for
 
 ## License
 
-This is a personal learning project. No license is currently applied.
+This project is licensed under the MIT License. For more details, see the LICENSE file attached.
